@@ -147,7 +147,7 @@ class LCD:
         """
         self.rs.value = data[0]
         self.rw.value = data[1]
-        for i in range(len(data)): self.data[7 - i].value = int(data[i + 2])
+        for i in range(len(data) - 2): self.data[7 - i].value = int(data[i + 2])
         self.submit()
 
     def write(self, text):
