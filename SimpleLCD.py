@@ -120,23 +120,31 @@ class LCD:
         "→": (0,1,1,1,1,1,1,1)
     }
 
-    def __init__(self, rs: Union[int, OutputDevice], rw: Union[int, OutputDevice], e: Union[int, OutputDevice], *data: Union[int, OutputDevice], cursor: bool = True, blink: bool = False, two_lines: bool = False, large_font: bool = False):
+    def __init__(self, rs: Union[int, OutputDevice], rw: Union[int, OutputDevice], e: Union[int, OutputDevice], *data: Union[int, OutputDevice], two_lines: bool = False, large_font: bool = False, power: bool = True, cursor: bool = True, blink: bool = False, ltr: bool = True, autoscroll: bool = False):
         if len(data) != 8: raise ValueError()
 
-        self.rs = OutputDevice(rs) if type(rs) is int else rs
-        self.rw = OutputDevice(rw) if type(rw) is int else rw
-        self.e  = OutputDevice(e ) if type(e ) is int else e
+        d = lambda x: OutputDevice(x, initial_value=False) if type(x) is int else x
+
+        self.rs = d(rs)
+        self.rw = d(rw)
+        self.e  = d(e )
         
         self.e.off()
         
-        self.data: List[OutputDevice] = list(map(OutputDevice, data))
+        self.data: List[OutputDevice] = list(map(d, data))
 
-        # init
-        [self.push(*p) for p in (
-            (0,0,0,0,1,1,two_lines,large_font,0,0), 
-            (0,0,0,0,0,0,1,1,cursor,blink), 
-            (0,0,0,0,0,0,0,1,1,0)
-        )]
+        self.power = True
+        self.cursor = cursor
+        self.blink = blink
+        self.ltr = ltr
+        self.autoscroll = autoscroll
+
+        # Initialize
+        self.push(0,0,0,0,1,1,two_lines,large_font)
+
+        self.configure(override=True)
+
+        self.clear()
 
     def submit(self):
         self.e.on()
@@ -165,6 +173,35 @@ class LCD:
         """
         self.push(1, 0, *data)
 
+    def configure(self, power: Optional[bool] = None, cursor: Optional[bool] = None, blink: Optional[bool] = None, ltr: Optional[bool] = None, autoscroll: Optional[bool] = None, override: bool = False):
+        """
+        Configure the LCD. You can turn on or off the display, toggle the cursor, and set whether or not it blinks.
+        """
+        if power is not None: self.power = power
+        if cursor is not None: self.cursor = cursor
+        if blink is not None: self.blink = blink
+        if ltr is not None: self.ltr = ltr
+        if autoscroll is not None: self.autoscroll = autoscroll
+
+        if power == cursor == blink == None and not override: ...
+        else: self.push(0,0,0,0,0,1,self.power,self.cursor,self.blink)
+        
+        if ltr == autoscroll == None and not override: ...
+        else: self.push(0,0,0,0,0,0,0,1,self.ltr,self.autoscroll)
+
+    def close(self, clear = False, shutdown = False):
+        """
+        Closes the LCD by releasing allocated GPIO pins. Optionally clear text and turn off the screen.
+        Using this object after it has been closed is a very bad idea!
+        """
+        if clear: self.clear()
+        if shutdown: self.configure(power = False)
+        
+        self.rs.close()
+        self.rw.close()
+        self.e.close()
+        
+        [x.close() for x in self.data]
 
 
     def clear(self):
@@ -180,20 +217,19 @@ class LCD:
         self.push(0,0,0,0,0,0,0,0,1,0)
         sleep(0.0016)
 
-    def move_cursor(self, amount: int):
+    def move(self, amount: int):
         """
         Move the cursor `amount` steps forward. If `amount` is negative, move the cursor `-amount` steps backward.
         """
-        self._move(amount, 0)
+        self._scrl(amount, 0)
 
-    def display_shift(self, amount: int):
+    def scroll(self, amount: int):
         """
         Shift the display `amount` steps forward. If `amount` is negative, shift the display `-amount` steps backward.
         """
-        self._move(amount, 1)
+        self._scrl(-amount, 1)
 
-    def _move(self, amount: int, t: int):
+    def _scrl(self, amount: int, t: int):
         if amount == 0: return
         d = amount > 0
         [self.push(0,0,0,0,0,1,t,d,0,0) for x in range(abs(amount))]
-
