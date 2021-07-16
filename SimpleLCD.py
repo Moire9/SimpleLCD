@@ -153,11 +153,11 @@ class LCD:
         for i in range(len(data) - 2): self.data[7 - i].value = int(data[i + 2])
         self.submit()
 
-    def write(self, text: Union[str, Iterable[str]]):
+    def write(self, text: Any):
         """
         Write a string to the LCD. Supported characters are all ASCII, as well as the Japanese Yen symbol (¥) and Unicode Arrows U+2190 and U+2192 (← & →)
         """
-        [self.text(*LCD.font[char]) for char in text]
+        [self.text(*LCD.font[char]) for char in str(text)]
 
     def text(self, *data: int):
         """
