@@ -1,10 +1,18 @@
-#!/usr/bin/python3
-
 from gpiozero import OutputDevice
 from time import sleep
 
 # https://www.sparkfun.com/datasheets/LCD/HD44780.pdf
 
+"""
+Example code:
+
+
+lcd = LCD(26, 13, 19,  18, 21, 20, 16, 12, 25, 24, 23, two_lines = True)    
+lcd.write("Hello, World!")
+lcd.home()
+lcd.write("hh")
+input()
+"""
 
 class LCD:
     font = {
@@ -185,11 +193,3 @@ class LCD:
         if amount == 0: return
         d = amount > 0
         [self.push(0,0,0,0,0,1,t,d,0,0) for x in range(abs(amount))]
-
-
-#if __name__ == "__main__":
-#    lcd = LCD(26, 13, 19,  18, 21, 20, 16, 12, 25, 24, 23, two_lines = True)    
-#    lcd.write("Hello, World!")
-#    lcd.home()
-#    lcd.write("hh")
-#    input()
