@@ -1,5 +1,6 @@
 from gpiozero import OutputDevice
 from time import sleep
+from typing import *
 
 # https://www.sparkfun.com/datasheets/LCD/HD44780.pdf
 
@@ -15,7 +16,7 @@ input()
 """
 
 class LCD:
-    font = {
+    font: Dict[str, Tuple[int, int, int, int, int, int, int, int]]  = {
         " ": (0,0,1,0,0,0,0,0),
         "!": (0,0,1,0,0,0,0,1),
         '"': (0,0,1,0,0,0,1,0),
@@ -119,14 +120,16 @@ class LCD:
         "→": (0,1,1,1,1,1,1,1)
     }
 
-    def __init__(self, rs, rw, e, *data, cursor = True, blink = False, two_lines = False, large_font = False):
+    def __init__(self, rs: Union[int, OutputDevice], rw: Union[int, OutputDevice], e: Union[int, OutputDevice], *data: Union[int, OutputDevice], cursor: bool = True, blink: bool = False, two_lines: bool = False, large_font: bool = False):
         if len(data) != 8: raise ValueError()
 
-        self.rs = OutputDevice(rs)
-        self.rw = OutputDevice(rw)
-        self.e  = OutputDevice(e, initial_value=0)
+        self.rs = OutputDevice(rs) if type(rs) is int else rs
+        self.rw = OutputDevice(rw) if type(rs) is int else rs
+        self.e  = OutputDevice(e ) if type(rs) is int else rs
         
-        self.data = list(map(OutputDevice, data))
+        self.e.off()
+        
+        self.data: List[OutputDevice] = list(map(OutputDevice, data))
 
         # init
         [self.push(*p) for p in (
@@ -139,7 +142,7 @@ class LCD:
         self.e.on()
         self.e.off()
 
-    def push(self, *data):
+    def push(self, *data: int):
         """
         Send commands to the LCD.
         `data` is up to 10 bits to be sent, which are sent over RS, RW, and then D0-D7.
@@ -150,13 +153,13 @@ class LCD:
         for i in range(len(data) - 2): self.data[7 - i].value = int(data[i + 2])
         self.submit()
 
-    def write(self, text):
+    def write(self, text: Union[str, Iterable[str]]):
         """
         Write a string to the LCD. Supported characters are all ASCII, as well as the Japanese Yen symbol (¥) and Unicode Arrows U+2190 and U+2192 (← & →)
         """
         [self.text(*LCD.font[char]) for char in text]
 
-    def text(self, *data):
+    def text(self, *data: int):
         """
         Write a character to the LCD, using its character code. Useful if you need to write symbols not supported by thislibrary.
         """
@@ -177,19 +180,20 @@ class LCD:
         self.push(0,0,0,0,0,0,0,0,1,0)
         sleep(0.0016)
 
-    def move_cursor(self, amount):
+    def move_cursor(self, amount: int):
         """
         Move the cursor `amount` steps forward. If `amount` is negative, move the cursor `-amount` steps backward.
         """
         self._move(amount, 0)
 
-    def display_shift(self, amount):
+    def display_shift(self, amount: int):
         """
         Shift the display `amount` steps forward. If `amount` is negative, shift the display `-amount` steps backward.
         """
         self._move(amount, 1)
 
-    def _move(self, amount, t):
+    def _move(self, amount: int, t: int):
         if amount == 0: return
         d = amount > 0
         [self.push(0,0,0,0,0,1,t,d,0,0) for x in range(abs(amount))]
+
