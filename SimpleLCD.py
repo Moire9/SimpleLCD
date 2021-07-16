@@ -124,8 +124,8 @@ class LCD:
         if len(data) != 8: raise ValueError()
 
         self.rs = OutputDevice(rs) if type(rs) is int else rs
-        self.rw = OutputDevice(rw) if type(rs) is int else rs
-        self.e  = OutputDevice(e ) if type(rs) is int else rs
+        self.rw = OutputDevice(rw) if type(rw) is int else rw
+        self.e  = OutputDevice(e ) if type(e ) is int else e
         
         self.e.off()
         
